@@ -1476,7 +1476,7 @@ st.markdown("""
 <div class="footer">
     <p><strong>Enhanced Deep Learning Approach for Automated Knee Injury Detection in MRI Scans</strong></p>
     <p>Two-Stage Pipeline: Per-Plane Experts + Multi-Plane Logistic Regression Fusion</p>
-    <p>K.R. Punchihewa | Coventry University | MSc Data Science & Machine Learning</p>
+    <p>K.R. Punchihewa | Coventry University | Bsc in Computer Science </p>
     <p style="font-size: 0.85rem; color: #888; margin-top: 1rem;">
         📅 February 2026 | 🔒 Uses only public de-identified data (MRNet - Stanford ML Group)
     </p>
