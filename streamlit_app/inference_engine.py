@@ -611,19 +611,18 @@ def generate_gradcam_heatmap(
     if model is None:
         return None, None, None
     
-    # Preprocess volume to tensor
     volume_norm = intensity_normalize(volume)
     volume_std = standardize_volume(volume_norm, target_slices=25)
     
     if target_slice_idx is None:
-        target_slice_idx = volume_std.shape[0] // 2  # default center slice
+        target_slice_idx = volume_std.shape[0] // 2
     
     target_slice_idx = max(0, min(target_slice_idx, volume_std.shape[0] - 1))
     raw_slice_2d = volume_std[target_slice_idx]
     
-    # Prepare input tensor with autograd enabled
-    volume_tensor = preprocess_volume_to_tensor(volume_std).to(DEVICE)
-    volume_tensor.requires_grad_(True)
+    # Preprocess specific slice to single 3D tensor (1, 3, 224, 224) for direct Grad-CAM activation
+    slice_tensor = preprocess_slice_to_tensor(raw_slice_2d).unsqueeze(0).to(DEVICE)
+    slice_tensor.requires_grad_(True)
     
     # Identify target layer (last Conv2d layer) for Grad-CAM
     target_layer = None
@@ -653,9 +652,9 @@ def generate_gradcam_heatmap(
     
     try:
         model.zero_grad()
-        logit = model(volume_tensor)
-        # Backpropagate sigmoid probability score for stable positive/negative gradient flow
-        score = torch.sigmoid(logit).squeeze()
+        slice_feat = model.encode_slice(slice_tensor)
+        logit = model.head(slice_feat).squeeze()
+        score = torch.sigmoid(logit)
         score.backward()
         
         h_fwd.remove()
@@ -664,12 +663,8 @@ def generate_gradcam_heatmap(
         if not activations or not gradients:
             return None, None, None
         
-        act_batch = activations[0].detach().cpu().numpy()  # (K, C, H, W)
-        grad_batch = gradients[0].detach().cpu().numpy()   # (K, C, H, W)
-        
-        target_idx = max(0, min(target_slice_idx, act_batch.shape[0] - 1))
-        act = act_batch[target_idx]    # (C, H, W)
-        grad = grad_batch[target_idx]  # (C, H, W)
+        act = activations[0].detach().cpu().numpy()[0]  # (C, H, W)
+        grad = gradients[0].detach().cpu().numpy()[0]   # (C, H, W)
         
         # Mean gradients across spatial dimensions
         weights = np.mean(grad, axis=(1, 2))
