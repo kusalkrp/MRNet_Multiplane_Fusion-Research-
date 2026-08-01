@@ -11,7 +11,11 @@ import numpy as np
 import pandas as pd
 import joblib
 from PIL import Image
-import cv2
+try:
+    import cv2
+except ImportError:
+    cv2 = None
+import matplotlib.pyplot as plt
 import scipy.ndimage as ndimage
 from scipy.stats import entropy
 
@@ -30,7 +34,12 @@ import streamlit as st
 # Path definitions
 BASE_DIR = Path(__file__).parent.parent
 CODE_DIR = BASE_DIR / "Code"
-DATASET_DIR = CODE_DIR / "dataset"
+if not CODE_DIR.exists():
+    CODE_DIR = BASE_DIR / "MRNet Hybrid"
+
+DATASET_DIR = BASE_DIR / "dataset"
+if not DATASET_DIR.exists():
+    DATASET_DIR = CODE_DIR / "dataset"
 
 # Model folders
 HYBRID_DIR = CODE_DIR / "runs_mrnet_hybrid_fusion_npy"
@@ -674,18 +683,27 @@ def generate_gradcam_heatmap(
             cam_norm = np.zeros_like(cam)
         
         # Resize CAM to 224x224
-        cam_resized = cv2.resize(cam_norm, (224, 224))
+        if cv2 is not None:
+            cam_resized = cv2.resize(cam_norm, (224, 224))
+        else:
+            cam_pil = Image.fromarray((cam_norm * 255).astype(np.uint8)).resize((224, 224), Image.BILINEAR)
+            cam_resized = np.array(cam_pil, dtype=np.float32) / 255.0
         
         # Prepare original slice PIL Image
         s_min, s_max = raw_slice_2d.min(), raw_slice_2d.max()
         denom = s_max - s_min if s_max - s_min > 0 else 1
         img_gray = ((raw_slice_2d - s_min) / denom * 255).astype(np.uint8)
-        img_gray_resized = cv2.resize(img_gray, (224, 224))
-        img_rgb = cv2.cvtColor(img_gray_resized, cv2.COLOR_GRAY2RGB)
         
-        # Apply JET colormap to heatmap
-        heatmap = cv2.applyColorMap(np.uint8(255 * cam_resized), cv2.COLORMAP_JET)
-        heatmap_rgb = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
+        if cv2 is not None:
+            img_gray_resized = cv2.resize(img_gray, (224, 224))
+            img_rgb = cv2.cvtColor(img_gray_resized, cv2.COLOR_GRAY2RGB)
+            heatmap = cv2.applyColorMap(np.uint8(255 * cam_resized), cv2.COLORMAP_JET)
+            heatmap_rgb = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
+        else:
+            img_gray_pil = Image.fromarray(img_gray).resize((224, 224), Image.BILINEAR)
+            img_rgb = np.stack([np.array(img_gray_pil)] * 3, axis=-1)
+            cmap = plt.get_cmap('jet')
+            heatmap_rgb = (cmap(cam_resized)[:, :, :3] * 255).astype(np.uint8)
         
         # Dynamic intensity-based alpha blending: attention areas light up in red/yellow, low areas retain grayscale MRI
         alpha = (cam_resized * 0.70)[:, :, np.newaxis]
