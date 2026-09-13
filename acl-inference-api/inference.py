@@ -39,7 +39,7 @@ MODEL_REGISTRY = {
         "checkpoint_pattern": "hybrid_expert_acl_{plane}.pt",
         "fusion_filename": "fusion_acl_hybrid.joblib",
         "has_attention": True,
-        "paper_auc": 0.963,
+        "paper_auc": 0.954,
     },
     "transfer_learning": {
         "name": "Transfer Learning Expert",
@@ -48,7 +48,7 @@ MODEL_REGISTRY = {
         "checkpoint_pattern": "transfer_expert_acl_{plane}.pt",
         "fusion_filename": "fusion_acl_transfer.joblib",
         "has_attention": False,
-        "paper_auc": 0.932,
+        "paper_auc": 0.892,
     },
     "custom_cnn": {
         "name": "Custom CNN Expert",
@@ -57,7 +57,7 @@ MODEL_REGISTRY = {
         "checkpoint_pattern": "custom_cnn_expert_acl_{plane}.pt",
         "fusion_filename": "fusion_acl_custom_cnn.joblib",
         "has_attention": False,
-        "paper_auc": 0.884,
+        "paper_auc": 0.827,
     },
 }
 
