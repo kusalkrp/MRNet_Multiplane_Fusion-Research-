@@ -28,11 +28,11 @@ const state = {
   isComputingCam: false,
 };
 
-// Paper benchmark AUC reference values
+// Paper benchmark AUC reference values (from Table 11 of Research Dissertation)
 const PAPER_BENCHMARKS = {
-  proposed: 0.963,
-  transfer_learning: 0.932,
-  custom_cnn: 0.884,
+  proposed: 0.954,
+  transfer_learning: 0.892,
+  custom_cnn: 0.827,
 };
 
 const MODEL_DISPLAY_NAMES = {

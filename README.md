@@ -131,15 +131,25 @@ The backend hosts three distinct model paradigms for each of the three anatomica
    - Combines a pretrained **DenseNet121** feature extractor with a parallel **Custom CNN** branch.
    - Applies **CBAM (Convolutional Block Attention Module)** for channel and spatial attention refinement.
    - Aggregates multi-slice representations using **Slice Attention Pooling** with learnable softmax scoring.
-   - Evaluated paper AUC: **`0.963`**.
+   - Evaluated held-out test AUC: **`0.954`** (Accuracy: `0.925`, F1-Score: `0.916`).
 2. **Transfer Learning Baseline (`transfer_learning`)**:
    - DenseNet121 backbone pretrained on ImageNet.
    - Slices aggregated via standard **Slice Max Pooling**.
-   - Evaluated paper AUC: **`0.932`**.
+   - Evaluated held-out test AUC: **`0.892`** (Accuracy: `0.742`, F1-Score: `0.644`).
 3. **Custom CNN Baseline (`custom_cnn`)**:
    - 4-stage convolutional neural network trained entirely from scratch.
    - Slices aggregated via **Slice Max Pooling**.
-   - Evaluated paper AUC: **`0.884`**.
+   - Evaluated held-out test AUC: **`0.827`** (Accuracy: `0.708`, F1-Score: `0.533`).
+
+#### Held-Out Test Set Benchmark Comparison (Table 11 from Dissertation)
+
+| Model Architecture | AUC | Accuracy | Precision | Recall (Sensitivity) | Specificity | F1-Score |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Custom CNN + Simple Fusion (Baseline)** | 0.827 | 0.708 | 0.952 | 0.370 | 0.970 | 0.533 |
+| **Transfer Learning Only + Simple Fusion** | 0.892 | 0.742 | 0.848 | 0.519 | 0.939 | 0.644 |
+| **Proposed Hybrid Multi-Plane + Learned Fusion** | **0.954** | **0.925** | **0.925** | **0.907** | **0.939** | **0.916** |
+| *Gains vs Custom CNN* | *+0.127* | *+0.217* | *-0.027* | *+0.537* | *-0.031* | *+0.383* |
+| *Gains vs Transfer Learning* | *+0.062* | *+0.183* | *+0.077* | *+0.388* | *0.000* | *+0.272* |
 
 ### 2. Exact Preprocessing Pipeline
 
@@ -267,9 +277,34 @@ python -m pytest acl-inference-api/tests -v
 
 | Test Suite | Focus Area | Status |
 |---|---|:---:|
-| `test_contracts.py` | `/health`, `/models`, Pydantic validation, 404/422 errors, SQLite audit logging | **PASSED** |
-| `test_fusion_weights.py` | Exact coefficient checks ($w_{\text{axial}}, w_{\text{coronal}}, w_{\text{sagittal}}, b$) across all 3 fusion models | **PASSED** |
-| `test_golden_regression.py` | Held-out test case reproduction: **Exam #1130** ($p=0.005\%$, Normal) and **Exam #1172** ($p=93.1\%$, Tear) | **PASSED** |
+| `test_contracts.py` | `/health`, `/models`, Pydantic validation, 404/422 errors, SQLite audit logging | **PASSED** (8 tests) |
+| `test_fusion_weights.py` | Exact coefficient checks ($w_{\text{axial}}, w_{\text{coronal}}, w_{\text{sagittal}}, b$) across all 3 fusion models | **PASSED** (2 tests) |
+| `test_golden_regression.py` | Held-out test case reproduction: **Exam #1130** ($p=0.005\%$, Normal) and **Exam #1172** ($p=93.1\%$, Tear) | **PASSED** (3 tests) |
+
+#### Verified PyTest Console Run Output
+
+```text
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-8.3.4, pluggy-1.6.0
+rootdir: E:\Corse works\Research\MRNet_Multiplane_Fusion-Research-
+collected 13 items
+
+acl-inference-api/tests/test_contracts.py::test_health_endpoint PASSED                    [  7%]
+acl-inference-api/tests/test_contracts.py::test_models_metadata_endpoint PASSED          [ 15%]
+acl-inference-api/tests/test_contracts.py::test_predict_success PASSED                    [ 23%]
+acl-inference-api/tests/test_contracts.py::test_unknown_model_returns_404 PASSED          [ 30%]
+acl-inference-api/tests/test_contracts.py::test_malformed_npy_shape_returns_422 PASSED   [ 38%]
+acl-inference-api/tests/test_contracts.py::test_gradcam_custom_cnn_rejected_with_422 PASSED [ 46%]
+acl-inference-api/tests/test_contracts.py::test_gradcam_proposed_returns_overlay PASSED  [ 53%]
+acl-inference-api/tests/test_contracts.py::test_audit_logs_recorded PASSED              [ 61%]
+acl-inference-api/tests/test_fusion_weights.py::test_fusion_weights_exact_match PASSED   [ 69%]
+acl-inference-api/tests/test_fusion_weights.py::test_fusion_weights_distinct_across_models PASSED [ 76%]
+acl-inference-api/tests/test_golden_regression.py::test_golden_case_1130_normal PASSED   [ 84%]
+acl-inference-api/tests/test_golden_regression.py::test_golden_case_1172_acl_tear PASSED [ 92%]
+acl-inference-api/tests/test_golden_regression.py::test_compare_endpoint_runs_all_models PASSED [100%]
+
+======================= 13 passed, 9 warnings in 43.22s =======================
+```
 
 ---
 
